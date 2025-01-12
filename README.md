@@ -1,1 +1,1 @@
-# -mental_counting_bot
+# mental_counting_bot
