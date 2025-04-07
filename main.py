@@ -3,7 +3,7 @@ import sqlite3
 import random
 from telebot import types
 
-TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+TOKEN = '7613888273:AAF4Je4-sRZNC4buTsoTaOmmwYyDc9JEnWw'
 bot = telebot.TeleBot(TOKEN)
 
 # Подключение к базе данных
