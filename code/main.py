@@ -3,7 +3,7 @@ import sqlite3
 import random
 from telebot import types
 
-TOKEN = '7613888273:AAF4Je4-sRZNC4buTsoTaOmmwYyDc9JEnWw'
+TOKEN = '7441081537:AAEWxaWYEIQ_arpvbxYfODAJeVdWRhg2l5g'
 bot = telebot.TeleBot(TOKEN)
 
 # Подключение к базе данных
@@ -78,6 +78,7 @@ def send_welcome(message):
                  "/leaderboard - таблица лидеров\n"
                  "/stop - остановить текущую игру")
 
+
 # Обработчик запуска игры
 @bot.message_handler(commands=['startgame'])
 def start_game(message):
@@ -90,6 +91,22 @@ def start_game(message):
         markup.add(btn)
     
     bot.send_message(message.chat.id, "Выбери уровень сложности:", reply_markup=markup)
+
+@bot.message_handler(commands=['stop'])
+def stop_game_command(message):
+    user_id = message.from_user.id
+    cursor.execute('''
+        UPDATE users 
+        SET current_question = NULL,
+            correct_answer = NULL 
+        WHERE user_id = ?
+    ''', (user_id,))
+    conn.commit()
+    
+    cursor.execute('SELECT score FROM users WHERE user_id = ?', (user_id,))
+    score = cursor.fetchone()[0]
+    
+    bot.reply_to(message, f"🛑 Игра остановлена. Твой счет: {score} баллов")
 
 # Обработчик выбора сложности
 @bot.callback_query_handler(func=lambda call: call.data.startswith('setdiff_'))
@@ -127,21 +144,23 @@ def stop_game(call):
     bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id)
     bot.send_message(call.message.chat.id, f"🛑 Игра остановлена. Твой счет: {score} баллов")
 
-@bot.message_handler(commands=['stop'])
-def stop_game_command(message):
-    user_id = message.from_user.id
+# Таблица лидеров
+@bot.message_handler(commands=['leaderboard'])
+def show_leaderboard(message):
     cursor.execute('''
-        UPDATE users 
-        SET current_question = NULL,
-            correct_answer = NULL 
-        WHERE user_id = ?
-    ''', (user_id,))
-    conn.commit()
+        SELECT username, score 
+        FROM users 
+        WHERE score > 0 
+        ORDER BY score DESC 
+        LIMIT 10
+    ''')
+    leaders = cursor.fetchall()
     
-    cursor.execute('SELECT score FROM users WHERE user_id = ?', (user_id,))
-    score = cursor.fetchone()[0]
+    response = "🏆 Топ игроков:\n" if leaders else "Таблица лидеров пуста!"
+    for i, (username, score) in enumerate(leaders, 1):
+        response += f"{i}. {username if username else 'Anonymous'} - {score} баллов\n"
     
-    bot.reply_to(message, f"🛑 Игра остановлена. Твой счет: {score} баллов")
+    bot.reply_to(message, response)
 
 # Обработчик ответов
 @bot.message_handler(func=lambda m: True)
@@ -186,23 +205,6 @@ def check_answer(message):
     else:
         bot.reply_to(message, f"❌ Неправильно. Попробуй ещё раз!")
 
-# Таблица лидеров
-@bot.message_handler(commands=['leaderboard'])
-def show_leaderboard(message):
-    cursor.execute('''
-        SELECT username, score 
-        FROM users 
-        WHERE score > 0 
-        ORDER BY score DESC 
-        LIMIT 10
-    ''')
-    leaders = cursor.fetchall()
-    
-    response = "🏆 Топ игроков:\n" if leaders else "Таблица лидеров пуста!"
-    for i, (username, score) in enumerate(leaders, 1):
-        response += f"{i}. {username if username else 'Anonymous'} - {score} баллов\n"
-    
-    bot.reply_to(message, response)
 
 if __name__ == '__main__':
     bot.polling(none_stop=True)
