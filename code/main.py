@@ -37,6 +37,8 @@ def generate_question(difficulty):
     if difficulty == 'easy':
         a = random.randint(*config['range'])
         b = random.randint(*config['range'])
+        if a < b:
+            a, b = b, a
         op = random.choice(config['operations'])
         question = f"{a} {op} {b}"
         answer = eval(question)
